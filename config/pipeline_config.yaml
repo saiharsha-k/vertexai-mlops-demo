@@ -1,5 +1,5 @@
 project:
-  id: "#your-project-id"  # Replace with your project ID
+  id: "garvaman-ai-poc"  # Replace with your project ID
   region: "us-central1"
   staging_bucket: "gs://vertex-mlops-demo"
 
@@ -26,7 +26,7 @@ endpoint:
   max_replicas: 3
 
 monitoring:
-  alert_email: "your-email-here"  # Replace with your email
+  alert_email: "saiharshak.shk@gmail.com"  # Replace with your email
   skew_threshold: 0.3
   sampling_rate: 1.0
   monitor_interval_hours: 1
