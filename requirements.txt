@@ -1,0 +1,13 @@
+google-cloud-aiplatform
+kfp
+google-cloud-pipeline-components
+google-cloud-storage
+google-cloud-pubsub
+pandas
+numpy
+scikit-learn
+xgboost
+pyyaml
+jupyter
+ipykernel
+python-dotenv

@@ -1,0 +1,720 @@
+{
+  "components": {
+    "comp-condition-1": {
+      "dag": {
+        "tasks": {
+          "endpoint-create": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-endpoint-create"
+            },
+            "dependentTasks": [
+              "model-upload"
+            ],
+            "inputs": {
+              "parameters": {
+                "display_name": {
+                  "runtimeValue": {
+                    "constant": "telco-churn-endpoint"
+                  }
+                },
+                "location": {
+                  "componentInputParameter": "pipelinechannel--location"
+                },
+                "project": {
+                  "componentInputParameter": "pipelinechannel--project_id"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "Create Vertex AI Endpoint"
+            }
+          },
+          "model-upload": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-model-upload"
+            },
+            "inputs": {
+              "artifacts": {
+                "unmanaged_container_model": {
+                  "componentInputArtifact": "pipelinechannel--trainer-model_artifact"
+                }
+              },
+              "parameters": {
+                "description": {
+                  "runtimeValue": {
+                    "constant": "XGBoost model predicting customer churn"
+                  }
+                },
+                "display_name": {
+                  "runtimeValue": {
+                    "constant": "telco-churn-xgboost"
+                  }
+                },
+                "location": {
+                  "componentInputParameter": "pipelinechannel--location"
+                },
+                "project": {
+                  "componentInputParameter": "pipelinechannel--project_id"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "Upload to Model Registry"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "artifacts": {
+          "pipelinechannel--trainer-model_artifact": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "pipelinechannel--evaluator-Output": {
+            "parameterType": "BOOLEAN"
+          },
+          "pipelinechannel--location": {
+            "parameterType": "STRING"
+          },
+          "pipelinechannel--project_id": {
+            "parameterType": "STRING"
+          }
+        }
+      }
+    },
+    "comp-data-loader": {
+      "executorLabel": "exec-data-loader",
+      "inputDefinitions": {
+        "parameters": {
+          "input_csv_path": {
+            "parameterType": "STRING"
+          },
+          "random_state": {
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "test_size": {
+            "parameterType": "NUMBER_DOUBLE"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "test_dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "train_dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "Output": {
+            "parameterType": "STRUCT"
+          }
+        }
+      }
+    },
+    "comp-endpoint-create": {
+      "executorLabel": "exec-endpoint-create",
+      "inputDefinitions": {
+        "parameters": {
+          "description": {
+            "defaultValue": "",
+            "description": "The description of the Endpoint.",
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
+          "display_name": {
+            "description": "The user-defined name of the Endpoint. The name can be up to 128 characters long and can be consist of any UTF-8 characters.",
+            "parameterType": "STRING"
+          },
+          "encryption_spec_key_name": {
+            "defaultValue": "",
+            "description": "Customer-managed encryption key spec for an Endpoint. If set, this Endpoint and all of this Endoint's sub-resources will be secured by this key. Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.  If set, this Endpoint and all sub-resources of this Endpoint will be secured by this key.",
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
+          "labels": {
+            "defaultValue": {},
+            "description": "The labels with user-defined metadata to organize your Endpoints.  Label keys and values can be no longer than 64 characters (Unicode codepoints), can only contain lowercase letters, numeric characters, underscores and dashes. International characters are allowed.  See https://goo.gl/xmQnxf for more information and examples of labels.",
+            "isOptional": true,
+            "parameterType": "STRUCT"
+          },
+          "location": {
+            "defaultValue": "us-central1",
+            "description": "Location to create the Endpoint. If not set, default to us-central1.",
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
+          "network": {
+            "defaultValue": "",
+            "description": "The full name of the Google Compute Engine network to which the Endpoint should be peered. Private services access must already be configured for the network. If left unspecified, the Endpoint is not peered with any network. [Format](https://cloud.google.com/compute/docs/reference/rest/v1/networks/insert): `projects/{project}/global/networks/{network}`. Where `{project}` is a project number, as in `'12345'`, and `{network}` is network name.",
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
+          "project": {
+            "defaultValue": "{{$.pipeline_google_cloud_project_id}}",
+            "description": "Project to create the Endpoint. Defaults to the project in which the PipelineJob is run.",
+            "isOptional": true,
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "endpoint": {
+            "artifactType": {
+              "schemaTitle": "google.VertexEndpoint",
+              "schemaVersion": "0.0.1"
+            },
+            "description": "Artifact tracking the created Endpoint."
+          }
+        },
+        "parameters": {
+          "gcp_resources": {
+            "description": "Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the create Endpoint's long-running operation.",
+            "parameterType": "STRING"
+          }
+        }
+      }
+    },
+    "comp-evaluator": {
+      "executorLabel": "exec-evaluator",
+      "inputDefinitions": {
+        "artifacts": {
+          "model_artifact": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "test_dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "auc_threshold": {
+            "parameterType": "NUMBER_DOUBLE"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "parameters": {
+          "Output": {
+            "parameterType": "BOOLEAN"
+          }
+        }
+      }
+    },
+    "comp-model-upload": {
+      "executorLabel": "exec-model-upload",
+      "inputDefinitions": {
+        "artifacts": {
+          "parent_model": {
+            "artifactType": {
+              "schemaTitle": "google.VertexModel",
+              "schemaVersion": "0.0.1"
+            },
+            "description": "An artifact of a model which to upload a new version to. Only specify this field when uploading a new version. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload#request-body)",
+            "isOptional": true
+          },
+          "unmanaged_container_model": {
+            "artifactType": {
+              "schemaTitle": "google.UnmanagedContainerModel",
+              "schemaVersion": "0.0.1"
+            },
+            "description": "The unmanaged container model to be uploaded.  The Model can be passed from an upstream step or imported via a KFP `dsl.importer`. Example:\nfrom kfp import dsl\nfrom google_cloud_pipeline_components.types import artifact_types\n\nimporter_spec = dsl.importer( artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model', artifact_class=artifact_types.UnmanagedContainerModel, metadata={ 'containerSpec': { 'imageUri': 'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod' } })",
+            "isOptional": true
+          }
+        },
+        "parameters": {
+          "description": {
+            "defaultValue": "",
+            "description": "The description of the Model. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)",
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
+          "display_name": {
+            "description": "The display name of the Model. The name can be up to 128 characters long and can be consist of any UTF-8 characters. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)",
+            "parameterType": "STRING"
+          },
+          "encryption_spec_key_name": {
+            "defaultValue": "",
+            "description": "Customer-managed encryption key spec for a Model. If set, this Model and all sub-resources of this Model will be secured by this key.  Has the form: `projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key`. The key needs to be in the same region as where the compute resource is created.",
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
+          "explanation_metadata": {
+            "defaultValue": {},
+            "description": "Metadata describing the Model's input and output for explanation. Both `explanation_metadata` and `explanation_parameters` must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)",
+            "isOptional": true,
+            "parameterType": "STRUCT"
+          },
+          "explanation_parameters": {
+            "defaultValue": {},
+            "description": "Parameters to configure explaining for Model's predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)",
+            "isOptional": true,
+            "parameterType": "STRUCT"
+          },
+          "labels": {
+            "defaultValue": {},
+            "description": "The labels with user-defined metadata to organize your model.  Label keys and values can be no longer than 64 characters (Unicode codepoints), can only contain lowercase letters, numeric characters, underscores and dashes. International characters are allowed.  See https://goo.gl/xmQnxf for more information and examples of labels.",
+            "isOptional": true,
+            "parameterType": "STRUCT"
+          },
+          "location": {
+            "defaultValue": "us-central1",
+            "description": "Optional location to upload this Model to. If not set, defaults to `us-central1`.",
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
+          "project": {
+            "defaultValue": "{{$.pipeline_google_cloud_project_id}}",
+            "description": "Project to upload this Model to. Defaults to the project in which the PipelineJob is run.",
+            "isOptional": true,
+            "parameterType": "STRING"
+          },
+          "version_aliases": {
+            "defaultValue": [],
+            "description": "User provided version aliases so that a model version can be referenced via alias (i.e. `projects/{project}/locations/{location}/models/{modelId}@{version_alias}` instead of auto-generated version id (i.e. `projects/{project}/locations/{location}/models/{modelId}@{versionId}`). The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9] to distinguish from versionId. A default version alias will be created for the first version of the model, and there must be exactly one default version alias for a model.",
+            "isOptional": true,
+            "parameterType": "LIST"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "model": {
+            "artifactType": {
+              "schemaTitle": "google.VertexModel",
+              "schemaVersion": "0.0.1"
+            },
+            "description": "Artifact tracking the created Model version."
+          }
+        },
+        "parameters": {
+          "gcp_resources": {
+            "description": "Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the upload Model's long-running operation.",
+            "parameterType": "STRING"
+          }
+        }
+      }
+    },
+    "comp-trainer": {
+      "executorLabel": "exec-trainer",
+      "inputDefinitions": {
+        "artifacts": {
+          "test_dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "train_dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "experiment_name": {
+            "parameterType": "STRING"
+          },
+          "learning_rate": {
+            "parameterType": "NUMBER_DOUBLE"
+          },
+          "location": {
+            "parameterType": "STRING"
+          },
+          "max_depth": {
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "n_estimators": {
+            "parameterType": "NUMBER_INTEGER"
+          },
+          "project_id": {
+            "parameterType": "STRING"
+          },
+          "run_name": {
+            "parameterType": "STRING"
+          },
+          "serving_container_image_uri": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "model_artifact": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultPipelineRoot": "gs://vertex-mlops-demo/pipeline_root",
+  "deploymentSpec": {
+    "executors": {
+      "exec-data-loader": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "data_loader"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn' 'fsspec' 'gcsfs' 'pyarrow'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef data_loader(\n    input_csv_path: str,\n    test_size: float,\n    random_state: int,\n    train_dataset: dsl.Output[dsl.Dataset],\n    test_dataset: dsl.Output[dsl.Dataset]\n) -> dict:\n    \"\"\"\n    KFP v2 component to load data from GCS, preprocess, and output stratified Parquet splits.\n    \"\"\"\n    import pandas as pd\n    import numpy as np\n    import logging\n    from sklearn.model_selection import train_test_split\n    from sklearn.preprocessing import StandardScaler, OneHotEncoder\n    from sklearn.compose import ColumnTransformer\n\n    # Component-level logging setup\n    logging.basicConfig(level=logging.INFO)\n    logger = logging.getLogger(\"kfp_data_loader\")\n\n    try:\n        logger.info(f\"Loading data from {input_csv_path}\")\n        df = pd.read_csv(input_csv_path)\n\n        # Handle typical Telco Churn issue: 'TotalCharges' often contains blank spaces\n        logger.info(\"Cleaning data: Coercing TotalCharges to numeric\")\n        df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(0.0)\n\n        target = 'Churn'\n        drop_cols = ['customerID']\n        numeric_cols = ['tenure', 'MonthlyCharges', 'TotalCharges']\n        categorical_cols = [col for col in df.columns if col not in numeric_cols + drop_cols + [target]]\n\n        logger.info(f\"Dropping columns: {drop_cols}\")\n        df = df.drop(columns=drop_cols)\n\n        logger.info(\"Encoding target variable (Yes=1, No=0)\")\n        df[target] = df[target].map({'Yes': 1, 'No': 0})\n\n        X = df.drop(columns=[target])\n        y = df[target]\n\n        logger.info(f\"Performing stratified train/test split (test_size={test_size})\")\n        X_train, X_test, y_train, y_test = train_test_split(\n            X, y, test_size=test_size, random_state=random_state, stratify=y\n        )\n\n        logger.info(\"Setting up ColumnTransformer preprocessing pipeline\")\n        preprocessor = ColumnTransformer(\n            transformers=[\n                ('num', StandardScaler(), numeric_cols),\n                ('cat', OneHotEncoder(drop='first', sparse_output=False), categorical_cols)\n            ]\n        )\n\n        logger.info(\"Fitting and transforming data\")\n        X_train_processed = preprocessor.fit_transform(X_train)\n        X_test_processed = preprocessor.transform(X_test)\n\n        # Extract feature names to rebuild dataframes\n        num_features = numeric_cols\n        cat_features = preprocessor.named_transformers_['cat'].get_feature_names_out(categorical_cols)\n        feature_names = num_features + list(cat_features)\n\n        train_df = pd.DataFrame(X_train_processed, columns=feature_names)\n        train_df[target] = y_train.values\n\n        test_df = pd.DataFrame(X_test_processed, columns=feature_names)\n        test_df[target] = y_test.values\n\n        logger.info(f\"Saving training data to {train_dataset.path}\")\n        train_df.to_parquet(train_dataset.path, index=False)\n\n        logger.info(f\"Saving testing data to {test_dataset.path}\")\n        test_df.to_parquet(test_dataset.path, index=False)\n\n        # Return metadata dict\n        return {\n            \"train_uri\": train_dataset.uri,\n            \"test_uri\": test_dataset.uri,\n            \"train_shape\": str(train_df.shape),\n            \"test_shape\": str(test_df.shape)\n        }\n\n    except Exception as e:\n        logger.error(f\"Pipeline execution failed in data_loader component: {str(e)}\")\n        raise e\n\n"
+          ],
+          "image": "python:3.10"
+        }
+      },
+      "exec-endpoint-create": {
+        "container": {
+          "args": [
+            "--type",
+            "CreateEndpoint",
+            "--payload",
+            "{\"Concat\": [\"{\", \"\\\"display_name\\\": \\\"\", \"{{$.inputs.parameters['display_name']}}\", \"\\\"\", \", \\\"description\\\": \\\"\", \"{{$.inputs.parameters['description']}}\", \"\\\"\", \", \\\"labels\\\": \", \"{{$.inputs.parameters['labels']}}\", \", \\\"encryption_spec\\\": {\\\"kms_key_name\\\":\\\"\", \"{{$.inputs.parameters['encryption_spec_key_name']}}\", \"\\\"}\", \", \\\"network\\\": \\\"\", \"{{$.inputs.parameters['network']}}\", \"\\\"\", \"}\"]}",
+            "--project",
+            "{{$.inputs.parameters['project']}}",
+            "--location",
+            "{{$.inputs.parameters['location']}}",
+            "--gcp_resources",
+            "{{$.outputs.parameters['gcp_resources'].output_file}}",
+            "--executor_input",
+            "{{$}}"
+          ],
+          "command": [
+            "python3",
+            "-u",
+            "-m",
+            "google_cloud_pipeline_components.container.v1.endpoint.create_endpoint.launcher"
+          ],
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.22.0"
+        }
+      },
+      "exec-evaluator": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "evaluator"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'pandas' 'xgboost' 'scikit-learn' 'pyarrow' 'fsspec' 'gcsfs'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef evaluator(\n    test_dataset: dsl.Input[dsl.Dataset],\n    model_artifact: dsl.Input[dsl.Artifact],\n    auc_threshold: float\n) -> bool:\n    \"\"\"\n    KFP v2 component to evaluate model performance and determine if it meets production thresholds.\n    \"\"\"\n    import pandas as pd\n    import logging\n    from xgboost import XGBClassifier\n    from sklearn.metrics import roc_auc_score, f1_score\n\n    # Component-level logging setup\n    logging.basicConfig(level=logging.INFO)\n    logger = logging.getLogger(\"kfp_evaluator\")\n\n    try:\n        logger.info(f\"Loading testing data from {test_dataset.path}\")\n        test_df = pd.read_parquet(test_dataset.path)\n\n        target = 'Churn'\n        X_test = test_df.drop(columns=[target])\n        y_test = test_df[target]\n\n        logger.info(f\"Loading model from {model_artifact.path}\")\n        import os\n        model = XGBClassifier()\n        model.load_model(os.path.join(model_artifact.path, \"model.bst\"))\n\n        logger.info(\"Generating predictions and probabilities...\")\n        y_pred = model.predict(X_test)\n        y_prob = model.predict_proba(X_test)[:, 1] # Probabilities for the positive class\n\n        logger.info(\"Calculating evaluation metrics...\")\n        auc_roc = roc_auc_score(y_test, y_prob)\n        f1 = f1_score(y_test, y_pred, zero_division=0)\n\n        logger.info(f\"Model Performance - AUC-ROC: {auc_roc:.4f}, F1-Score: {f1:.4f}\")\n        logger.info(f\"Required AUC-ROC Threshold: {auc_threshold}\")\n\n        is_approved = bool(auc_roc > auc_threshold)\n\n        if is_approved:\n            logger.info(\"Model PASSED the evaluation threshold.\")\n        else:\n            logger.warning(\"Model FAILED the evaluation threshold.\")\n\n        return is_approved\n\n    except Exception as e:\n        logger.error(f\"Pipeline execution failed in evaluator component: {str(e)}\")\n        raise e\n\n"
+          ],
+          "image": "python:3.10"
+        }
+      },
+      "exec-model-upload": {
+        "container": {
+          "args": [
+            "--type",
+            "UploadModel",
+            "--payload",
+            "{\"Concat\": [\"{\", \"\\\"display_name\\\": \\\"\", \"{{$.inputs.parameters['display_name']}}\", \"\\\"\", \", \\\"description\\\": \\\"\", \"{{$.inputs.parameters['description']}}\", \"\\\"\", \", \\\"explanation_spec\\\": {\", \"\\\"parameters\\\": \", \"{{$.inputs.parameters['explanation_parameters']}}\", \", \\\"metadata\\\": \", \"{{$.inputs.parameters['explanation_metadata']}}\", \"}\", \", \\\"encryption_spec\\\": {\\\"kms_key_name\\\":\\\"\", \"{{$.inputs.parameters['encryption_spec_key_name']}}\", \"\\\"}\", \", \\\"version_aliases\\\": \", \"{{$.inputs.parameters['version_aliases']}}\", \", \\\"labels\\\": \", \"{{$.inputs.parameters['labels']}}\", \", \\\"pipeline_job\\\": \\\"\", \"projects/{{$.inputs.parameters['project']}}/locations/{{$.inputs.parameters['location']}}/pipelineJobs/{{$.pipeline_job_uuid}}\", \"\\\"\", \"}\"]}",
+            "--project",
+            "{{$.inputs.parameters['project']}}",
+            "--location",
+            "{{$.inputs.parameters['location']}}",
+            "--gcp_resources",
+            "{{$.outputs.parameters['gcp_resources'].output_file}}",
+            "--executor_input",
+            "{{$}}",
+            "{\"IfPresent\": {\"InputName\": \"parent_model\", \"Then\": [\"--parent_model_name\", \"{{$.inputs.artifacts['parent_model'].metadata['resourceName']}}\"]}}"
+          ],
+          "command": [
+            "python3",
+            "-u",
+            "-m",
+            "google_cloud_pipeline_components.container.v1.model.upload_model.launcher"
+          ],
+          "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:2.22.0"
+        }
+      },
+      "exec-trainer": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "trainer"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'pandas' 'xgboost' 'scikit-learn' 'pyarrow' 'fsspec' 'gcsfs' 'google-cloud-aiplatform'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef trainer(\n    train_dataset: dsl.Input[dsl.Dataset],\n    test_dataset: dsl.Input[dsl.Dataset],\n    learning_rate: float,\n    max_depth: int,\n    n_estimators: int,\n    project_id: str,\n    location: str,\n    experiment_name: str,\n    run_name: str,\n    serving_container_image_uri: str,\n    model_artifact: dsl.Output[dsl.Artifact]\n):\n    \"\"\"\n    KFP v2 component to train an XGBoost model and log to Vertex AI Experiments.\n    \"\"\"\n    import pandas as pd\n    import logging\n    from xgboost import XGBClassifier\n    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score\n    from google.cloud import aiplatform\n\n    # Component-level logging setup\n    logging.basicConfig(level=logging.INFO)\n    logger = logging.getLogger(\"kfp_trainer\")\n\n    try:\n        logger.info(\"Initializing Vertex AI Experiments...\")\n        aiplatform.init(project=project_id, location=location, experiment=experiment_name)\n\n        # Start the experiment run\n        aiplatform.start_run(run=f\"{run_name}-trainer\")\n\n        logger.info(f\"Loading training data from {train_dataset.path}\")\n        train_df = pd.read_parquet(train_dataset.path)\n\n        logger.info(f\"Loading testing data from {test_dataset.path}\")\n        test_df = pd.read_parquet(test_dataset.path)\n\n        target = 'Churn'\n        X_train = train_df.drop(columns=[target])\n        y_train = train_df[target]\n        X_test = test_df.drop(columns=[target])\n        y_test = test_df[target]\n\n        # Log parameters to Vertex AI\n        params = {\n            \"learning_rate\": learning_rate,\n            \"max_depth\": max_depth,\n            \"n_estimators\": n_estimators,\n            \"objective\": \"binary:logistic\"\n        }\n        logger.info(f\"Logging parameters: {params}\")\n        aiplatform.log_params(params)\n\n        logger.info(\"Initializing and training XGBoost model...\")\n        model = XGBClassifier(**params, random_state=42)\n        model.fit(X_train, y_train)\n\n        logger.info(\"Generating predictions on test set...\")\n        y_pred = model.predict(X_test)\n\n        logger.info(\"Calculating metrics...\")\n        metrics = {\n            \"accuracy\": accuracy_score(y_test, y_pred),\n            \"precision\": precision_score(y_test, y_pred, zero_division=0),\n            \"recall\": recall_score(y_test, y_pred, zero_division=0),\n            \"f1_score\": f1_score(y_test, y_pred, zero_division=0)\n        }\n\n        logger.info(f\"Logging metrics: {metrics}\")\n        aiplatform.log_metrics(metrics)\n\n        logger.info(f\"Saving model artifact to {model_artifact.path}\")\n        # XGBoost handles saving directly to the specified path\n        import os\n        # Create a directory at the artifact path\n        os.makedirs(model_artifact.path, exist_ok=True)\n        # Save the model specifically as 'model.bst' inside that directory\n        model.save_model(os.path.join(model_artifact.path, \"model.bst\"))\n        model_artifact.metadata[\"containerSpec\"] = {\n            \"imageUri\": serving_container_image_uri\n        }\n\n        logger.info(\"Ending Vertex AI Experiment run...\")\n        aiplatform.end_run()\n\n    except Exception as e:\n        logger.error(f\"Pipeline execution failed in trainer component: {str(e)}\")\n        # Ensure experiment run is ended even on failure to avoid zombie runs\n        aiplatform.end_run()\n        raise e\n\n"
+          ],
+          "image": "python:3.10"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "description": "End-to-end MLOps pipeline for Telco Churn prediction including drift awareness",
+    "name": "telco-churn-production-pipeline"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "condition-1": {
+          "componentRef": {
+            "name": "comp-condition-1"
+          },
+          "dependentTasks": [
+            "evaluator",
+            "trainer"
+          ],
+          "inputs": {
+            "artifacts": {
+              "pipelinechannel--trainer-model_artifact": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "model_artifact",
+                  "producerTask": "trainer"
+                }
+              }
+            },
+            "parameters": {
+              "pipelinechannel--evaluator-Output": {
+                "taskOutputParameter": {
+                  "outputParameterKey": "Output",
+                  "producerTask": "evaluator"
+                }
+              },
+              "pipelinechannel--location": {
+                "componentInputParameter": "location"
+              },
+              "pipelinechannel--project_id": {
+                "componentInputParameter": "project_id"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "approve_model_for_production"
+          },
+          "triggerPolicy": {
+            "condition": "inputs.parameter_values['pipelinechannel--evaluator-Output'] == true"
+          }
+        },
+        "data-loader": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-data-loader"
+          },
+          "inputs": {
+            "parameters": {
+              "input_csv_path": {
+                "componentInputParameter": "input_csv_path"
+              },
+              "random_state": {
+                "componentInputParameter": "random_state"
+              },
+              "test_size": {
+                "componentInputParameter": "test_size"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "Load & Preprocess Data"
+          }
+        },
+        "evaluator": {
+          "cachingOptions": {},
+          "componentRef": {
+            "name": "comp-evaluator"
+          },
+          "dependentTasks": [
+            "data-loader",
+            "trainer"
+          ],
+          "inputs": {
+            "artifacts": {
+              "model_artifact": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "model_artifact",
+                  "producerTask": "trainer"
+                }
+              },
+              "test_dataset": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "test_dataset",
+                  "producerTask": "data-loader"
+                }
+              }
+            },
+            "parameters": {
+              "auc_threshold": {
+                "componentInputParameter": "auc_threshold"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "Evaluate Model Metrics"
+          }
+        },
+        "trainer": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-trainer"
+          },
+          "dependentTasks": [
+            "data-loader"
+          ],
+          "inputs": {
+            "artifacts": {
+              "test_dataset": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "test_dataset",
+                  "producerTask": "data-loader"
+                }
+              },
+              "train_dataset": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "train_dataset",
+                  "producerTask": "data-loader"
+                }
+              }
+            },
+            "parameters": {
+              "experiment_name": {
+                "componentInputParameter": "experiment_name"
+              },
+              "learning_rate": {
+                "componentInputParameter": "learning_rate"
+              },
+              "location": {
+                "componentInputParameter": "location"
+              },
+              "max_depth": {
+                "componentInputParameter": "max_depth"
+              },
+              "n_estimators": {
+                "componentInputParameter": "n_estimators"
+              },
+              "project_id": {
+                "componentInputParameter": "project_id"
+              },
+              "run_name": {
+                "componentInputParameter": "run_name"
+              },
+              "serving_container_image_uri": {
+                "componentInputParameter": "serving_container_image_uri"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "Train XGBoost Model"
+          }
+        }
+      }
+    },
+    "inputDefinitions": {
+      "parameters": {
+        "auc_threshold": {
+          "defaultValue": 0.85,
+          "isOptional": true,
+          "parameterType": "NUMBER_DOUBLE"
+        },
+        "experiment_name": {
+          "defaultValue": "telco-churn-experiment",
+          "isOptional": true,
+          "parameterType": "STRING"
+        },
+        "input_csv_path": {
+          "parameterType": "STRING"
+        },
+        "learning_rate": {
+          "defaultValue": 0.1,
+          "isOptional": true,
+          "parameterType": "NUMBER_DOUBLE"
+        },
+        "location": {
+          "defaultValue": "us-central1",
+          "isOptional": true,
+          "parameterType": "STRING"
+        },
+        "max_depth": {
+          "defaultValue": 5.0,
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "n_estimators": {
+          "defaultValue": 100.0,
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "project_id": {
+          "defaultValue": "garvaman-ai-poc",
+          "isOptional": true,
+          "parameterType": "STRING"
+        },
+        "random_state": {
+          "defaultValue": 42.0,
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "run_name": {
+          "defaultValue": "pipeline-run",
+          "isOptional": true,
+          "parameterType": "STRING"
+        },
+        "serving_container_image_uri": {
+          "defaultValue": "us-docker.pkg.dev/vertex-ai/prediction/xgboost-cpu.1-6:latest",
+          "isOptional": true,
+          "parameterType": "STRING"
+        },
+        "test_size": {
+          "defaultValue": 0.2,
+          "isOptional": true,
+          "parameterType": "NUMBER_DOUBLE"
+        }
+      }
+    }
+  },
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-2.16.0"
+}

@@ -1,0 +1,38 @@
+project:
+  id: "#your-project-id"  # Replace with your project ID
+  region: "us-central1"
+  staging_bucket: "gs://vertex-mlops-demo"
+
+data:
+  raw_data_gcs_uri: "gs://vertex-mlops-demo/data/churn_v1.csv"
+  drifted_data_gcs_uri: "gs://vertex-mlops-demo/data/churn_v2_drifted.csv"
+  processed_train_uri: "gs://vertex-mlops-demo/processed/train.parquet"
+  processed_test_uri: "gs://vertex-mlops-demo/processed/test.parquet"
+  model_artifact_uri: "gs://vertex-mlops-demo/models/model.bst"
+
+model:
+  name: "churn-predictor"
+  version_labels:
+    env: "demo"
+    use_case: "churn"
+    data_version: "v1"
+  champion_alias: "champion"
+  eval_threshold_auc: 0.70
+
+endpoint:
+  display_name: "churn-predictor-endpoint"
+  machine_type: "n1-standard-4"
+  min_replicas: 1
+  max_replicas: 3
+
+monitoring:
+  alert_email: "your-email-here"  # Replace with your email
+  skew_threshold: 0.3
+  sampling_rate: 1.0
+  monitor_interval_hours: 1
+
+pipeline:
+  display_name: "churn-mlops-pipeline-v1"
+  experiment_name: "churn-experiment"
+  pipeline_root: "gs://vertex-mlops-demo/pipeline-root"
+  scheduler_cron: "0 2 * * *"  # Daily 2AM retraining
